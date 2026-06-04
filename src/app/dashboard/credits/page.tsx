@@ -60,6 +60,7 @@ const PLANS = [
 
 export default function CreditsPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const router = useRouter();
 
   // Load Snap Script Secara Manual (Lebih Aman)
@@ -110,21 +111,32 @@ export default function CreditsPage() {
 
       const data = await response.json();
 
+      console.log("[CHECKOUT] Response dari server:", { token: !!data.token, orderId: data.orderId });
+
       if (!data.token) {
         throw new Error(
           "Token pembayaran tidak ditemukan dalam respons server"
         );
       }
 
+      if (!data.orderId) {
+        console.warn("[CHECKOUT] ⚠️ orderId tidak ada di response!", data);
+      }
+
       // 2. Munculkan Pop-up Midtrans (Snap)
       if (typeof window !== "undefined" && (window as any).snap) {
         (window as any).snap.pay(data.token, {
           onSuccess: function (result: any) {
-            toast.success("Pembayaran Berhasil! Kredit sedang diproses.");
-            setTimeout(() => {
+            console.log("[SNAP] onSuccess dipanggil!", { result, orderId: data.orderId });
+            // JANGAN fetch di sini! Popup context bisa bikin network error.
+            // Redirect ke dashboard dengan orderId → dashboard akan verify server-side.
+            toast.success("🎉 Pembayaran berhasil! Memverifikasi kredit...");
+            if (data.orderId) {
+              router.push(`/dashboard?verify=${encodeURIComponent(data.orderId)}`);
+            } else {
               router.push("/dashboard");
-              router.refresh();
-            }, 2000);
+            }
+            router.refresh();
           },
           onPending: function (result: any) {
             toast.info("Menunggu pembayaran... Cek dashboard nanti.");
@@ -134,7 +146,9 @@ export default function CreditsPage() {
             toast.error("Pembayaran Gagal!");
           },
           onClose: function () {
-            toast("Pop-up ditutup.");
+            if (!verifying) {
+              toast("Pop-up ditutup.");
+            }
           },
         });
       } else {

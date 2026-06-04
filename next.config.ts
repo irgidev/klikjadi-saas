@@ -8,13 +8,12 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "via.placeholder.com", // Jaga-jaga kalau pakai placeholder lain
+        hostname: "via.placeholder.com",
       },
-      // Nanti kalau sudah pakai Supabase Storage, tambahkan ini:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'xyz.supabase.co',
-      // }
+      {
+        protocol: "https",
+        hostname: "assets.meshy.ai", // Meshy AI output
+      },
     ],
   },
 };

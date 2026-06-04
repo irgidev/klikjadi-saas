@@ -44,3 +44,12 @@ next-env.d.ts
 .env
 node_modules/
 .next/
+.gstack/
+
+# excluded folders
+ppt_final_deck/
+fake/
+.vscode/
+tmp/
+backend/models/
+backend/__pycache__/

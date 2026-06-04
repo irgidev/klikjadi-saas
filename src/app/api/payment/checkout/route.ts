@@ -78,14 +78,13 @@ export async function POST(request: Request) {
     console.log("✅ [CHECKOUT] Token berhasil didapat:", token);
 
     // 7. Simpan Transaksi ke Database
-    // PERBAIKAN DI SINI: Hapus field 'id' agar Supabase generate UUID otomatis
     const { error: dbError } = await supabase.from("transactions").insert({
-      // id: orderId,  <-- HAPUS INI karena kolom ID di DB tipe UUID, sedangkan orderId string.
+      id: orderId,                 // <--- PASTIKAN BARIS INI ADA!
       user_id: user.id,
       amount: price,
       credits_purchased: credits,
       status: "pending",
-      midtrans_order_id: orderId, // Simpan Order ID String di sini
+      midtrans_order_id: orderId,
     });
 
     if (dbError) {
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
       throw new Error("Gagal simpan DB: " + dbError.message);
     }
 
-    return NextResponse.json({ token });
+    return NextResponse.json({ token, orderId });
   } catch (error: any) {
     console.error("💥 [CHECKOUT] ERROR:", error);
     const message = error.message || "Terjadi kesalahan pada server pembayaran";
