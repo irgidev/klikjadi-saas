@@ -53,3 +53,5 @@ fake/
 tmp/
 backend/models/
 backend/__pycache__/
+
+.vercel

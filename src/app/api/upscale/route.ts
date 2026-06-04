@@ -91,8 +91,4 @@ export async function POST(req: NextRequest) {
     }
 }
 
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// Next.js 16: FormData body parsing is automatic — no config needed

@@ -108,8 +108,8 @@ export default function UpscalePage() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout for CPU processing
 
-            // Use Local Python Backend (FastAPI)
-            const API_URL = "http://127.0.0.1:8000/api/upscale";
+            // Use Next.js API Route (HuggingFace Inference — serverless compatible)
+            const API_URL = "/api/upscale";
 
             const apiResponse = await fetch(API_URL, {
                 method: "POST",

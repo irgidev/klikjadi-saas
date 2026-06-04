@@ -1,0 +1,1 @@
+{"$schema": "https://openapi.vercel.sh/vercel.json", "framework": "nextjs", "buildCommand": "npm run build", "outputDirectory": ".next", "headers": [{"source": "/api/(.*)", "headers": [{"key": "Cache-Control", "value": "no-store, must-revalidate"}]}]}

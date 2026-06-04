@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * POST /api/py/remove-bg
+ *
+ * Background removal using HuggingFace Inference API (BiRefNet).
+ * Replaces local Python backend for Vercel/serverless deployment.
+ */
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
@@ -9,73 +15,70 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No image provided" }, { status: 400 });
         }
 
-        // Convert File to Blob for forwarding
-        // We use the Python Backend URL
-        const BACKEND_URL = "http://127.0.0.1:8000/api/remove-bg";
+        // HuggingFace Inference API — BiRefNet general model
+        const MODEL_ID = "brad-sc/birefnet-general";
+        const API_URL = `https://router.huggingface.co/hf-inference/models/${MODEL_ID}`;
 
-        // Create new FormData for the backend request
-        const backendFormData = new FormData();
-        backendFormData.append("image", file);
+        const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_API_KEY;
 
-        console.log(`Proxying request to Python Backend: ${BACKEND_URL}`);
+        const arrayBuffer = await file.arrayBuffer();
 
-        try {
-            const response = await fetch(BACKEND_URL, {
-                method: "POST",
-                body: backendFormData,
-                // Do not set Content-Type header manually for FormData, fetch does it correctly with boundary
-            });
+        const headers: Record<string, string> = {
+            "Content-Type": file.type || "application/octet-stream",
+        };
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Backend Error:", response.status, errorText);
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
 
-                // Handle 503 Service Unavailable (Model Loading)
-                if (response.status === 503) {
-                    return NextResponse.json(
-                        { error: "Model is loading", details: "Server Python sedang menyiapkan model. Silakan coba lagi dalam 10 detik." },
-                        { status: 503 }
-                    );
-                }
+        console.log(`[Remove-BG] Sending to HuggingFace: ${MODEL_ID}`);
 
-                // Handle Connection Refused (Backend not running)
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers,
+            body: arrayBuffer,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Remove-BG] HF Error:", response.status, errorText);
+
+            if (response.status === 503) {
                 return NextResponse.json(
-                    { error: "Backend Error", details: `Python Backend returned ${response.status}: ${errorText}` },
+                    { error: "Model is loading", details: "Model sedang dipersiapkan. Coba lagi dalam 30 detik." },
+                    { status: 503 }
+                );
+            }
+
+            if (response.status === 410 || response.status === 404) {
+                return NextResponse.json(
+                    { error: "Model unavailable", details: "Model AI sedang tidak tersedia." },
                     { status: response.status }
                 );
             }
 
-            // Get the image blob from backend
-            const imageBlob = await response.blob();
-            const arrayBuffer = await imageBlob.arrayBuffer();
-
-            // Return to frontend
-            return new NextResponse(arrayBuffer, {
-                headers: {
-                    "Content-Type": "image/png",
-                    "Content-Disposition": `attachment; filename="removed_bg.png"`,
-                },
-            });
-
-        } catch (fetchError: any) {
-            console.error("Fetch Error:", fetchError);
-            if (fetchError.cause?.code === 'ECONNREFUSED') {
-                return NextResponse.json(
-                    {
-                        error: "Backend Unavailable",
-                        details: "Server Python (FastAPI) belum berjalan di port 8000. Pastikan sudah menjalankan 'uvicorn main:app' di terminal backend."
-                    },
-                    { status: 503 }
-                );
-            }
-            throw fetchError;
+            return NextResponse.json(
+                { error: "Background removal failed", details: errorText },
+                { status: response.status }
+            );
         }
 
+        const resultBuffer = await response.arrayBuffer();
+
+        return new NextResponse(resultBuffer, {
+            headers: {
+                "Content-Type": "image/png",
+                "Content-Length": resultBuffer.byteLength.toString(),
+            },
+        });
+
     } catch (error: any) {
-        console.error("Proxy Error:", error);
+        console.error("[Remove-BG] Error:", error);
         return NextResponse.json(
             { error: "Internal Server Error", details: error.message },
             { status: 500 }
         );
     }
 }
+
+// Next.js 16: FormData body parsing is automatic — no config needed

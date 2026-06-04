@@ -8,13 +8,16 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   const handleLogin = async () => {
     setIsLoading(true);
+
+    // Lazy init Supabase client only when user clicks login
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/auth/callback` },

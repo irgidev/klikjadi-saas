@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
+    // Lazy init — avoid build-time evaluation of env vars
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+        return NextResponse.json(
+            { success: false, error: "Server configuration missing." },
+            { status: 500 }
+        );
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
     try {
         const formData = await request.formData();
         const zipFile = formData.get('file') as File;
